@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: Credit Application API
+  description: API для управления заявками на кредит
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081/api/v1
+    description: Локальный сервер
+
+paths:
+  /credit-applications:
+    post:
+      summary: Создать новую заявку на кредит
+      description: Создает новую заявку на кредит с указанными данными.
+      operationId: createCreditApplication
+      requestBody:
+        description: Данные новой заявки на кредит
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditApplicationRequest'
+      responses:
+        '201':
+          description: Заявка успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditApplicationResponse'
+        '400':
+          description: Неверный запрос
+    get:
+      summary: Получить список заявок на кредит
+      description: Возвращает список всех заявок на кредит.
+      operationId: getAllCreditApplications
+      responses:
+        '200':
+          description: Список заявок на кредит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CreditApplicationResponse'
+
+  /credit-applications/{id}:
+    get:
+      summary: Получить заявку по ID
+      description: Возвращает данные конкретной заявки по её ID.
+      operationId: getCreditApplicationById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Уникальный идентификатор заявки
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Данные заявки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditApplicationResponse'
+        '404':
+          description: Заявка не найдена
+    put:
+      summary: Обновить заявку на кредит
+      description: Обновляет информацию существующей заявки.
+      operationId: updateCreditApplication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Уникальный идентификатор заявки
+          schema:
+            type: string
+      requestBody:
+        description: Обновлённые данные заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditApplicationRequest'
+      responses:
+        '200':
+          description: Заявка успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditApplicationResponse'
+        '404':
+          description: Заявка не найдена
+    delete:
+      summary: Удалить заявку на кредит
+      description: Удаляет заявку по её ID.
+      operationId: deleteCreditApplication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Уникальный идентификатор заявки
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Заявка успешно удалена
+        '404':
+          description: Заявка не найдена
+
+components:
+  schemas:
+    CreditApplicationRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+          example: 50000
+        termInMonths:
+          type: integer
+          example: 12
+      required:
+        - amount
+        - termInMonths
+
+    CreditApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        amount:
+          type: number
+          format: double
+          example: 50000
+        termInMonths:
+          type: integer
+          example: 12
+        status:
+          type: string
+          example: "PENDING"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-16T14:32:00Z"

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/abs?currentSchema=${spring.application.name}}
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 1
+  jpa:
+    open-in-view: false
+
+  liquibase:
+    user: ${DB_LOGIN:postgres}
+    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/abs?currentSchema=${spring.application.name}}
+
+server:
+  port: 8081
