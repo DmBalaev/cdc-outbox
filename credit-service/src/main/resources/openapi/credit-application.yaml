@@ -29,6 +29,7 @@ paths:
                 $ref: '#/components/schemas/CreditApplicationResponse'
         '400':
           description: Неверный запрос
+
     get:
       summary: Получить список заявок на кредит
       description: Возвращает список всех заявок на кредит.
@@ -43,31 +44,11 @@ paths:
                 items:
                   $ref: '#/components/schemas/CreditApplicationResponse'
 
-  /credit-applications/{id}:
-    get:
-      summary: Получить заявку по ID
-      description: Возвращает данные конкретной заявки по её ID.
-      operationId: getCreditApplicationById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Уникальный идентификатор заявки
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Данные заявки
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreditApplicationResponse'
-        '404':
-          description: Заявка не найдена
+  /credit-applications/{id}/status:
     put:
-      summary: Обновить заявку на кредит
-      description: Обновляет информацию существующей заявки.
-      operationId: updateCreditApplication
+      summary: Обновить статус заявки на кредит
+      description: Обновляет статус существующей заявки.
+      operationId: updateCreditApplicationStatus
       parameters:
         - name: id
           in: path
@@ -75,36 +56,27 @@ paths:
           description: Уникальный идентификатор заявки
           schema:
             type: string
+            format: uuid
       requestBody:
-        description: Обновлённые данные заявки
+        description: Новый статус заявки
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreditApplicationRequest'
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: "APPROVED"
+              required:
+                - status
       responses:
         '200':
-          description: Заявка успешно обновлена
+          description: Статус заявки успешно обновлён
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreditApplicationResponse'
-        '404':
-          description: Заявка не найдена
-    delete:
-      summary: Удалить заявку на кредит
-      description: Удаляет заявку по её ID.
-      operationId: deleteCreditApplication
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Уникальный идентификатор заявки
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Заявка успешно удалена
         '404':
           description: Заявка не найдена
 
