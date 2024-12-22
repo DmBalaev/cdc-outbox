@@ -18,7 +18,7 @@
 1. **Решение через Event Publisher:**
 
     - Использование доменных событий и механизма публикации событий внутри приложения (например, Spring ApplicationEventPublisher).
-
+      [Реализация через ApplicationEventPublisher](https://github.com/DmBalaev/cdc-outbox/tree/spring-boot-event-publisher)
 2. **Решение через Outbox Pattern:**
 
     - Использование таблицы Outbox для записи событий в базу данных в рамках той же транзакции, что и обновление статуса. Позже события из Outbox передаются в Kafka.
