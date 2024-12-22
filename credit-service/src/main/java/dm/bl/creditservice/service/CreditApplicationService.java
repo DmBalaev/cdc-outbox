@@ -7,6 +7,7 @@ import dm.bl.creditservice.publisher.KafkaPublisher;
 import dm.bl.creditservice.repository.CreditApplicationRepository;
 import dm.bl.model.CreditApplicationRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CreditApplicationService {
     private final CreditApplicationRepository creditApplicationRepository;
-    private final KafkaPublisher kafkaPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public CreditApplicationEntity save(CreditApplicationRequest request) {
@@ -44,7 +45,7 @@ public class CreditApplicationService {
         application.setStatus(status);
         application.setUpdateAt(LocalDate.now());
 
-        kafkaPublisher.sendStatusUpdate("credit-application-status", status.name());
+        applicationEventPublisher.publishEvent(status);
         return creditApplicationRepository.save(application);
     }
 }

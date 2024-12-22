@@ -1,31 +1,74 @@
-# Обновление статуса кредитной заявки с отправкой уведомлений
+# Реализация отправки сообщений через EventPublisher
 
-## Проблема
+## Описание
+В данной ветке реализована отправка уведомлений о статусе заявки на кредит с использованием EventPublisher (Событийного издателя). Основная идея подхода — гарантировать отправку сообщения в Kafka только после успешного завершения транзакции обновления статуса в базе данных.
 
-В процессе обработки кредитной заявки, необходимо обновлять её статус. Если статус заявки изменяется на — например, «Одобрено» («Approved»), нужно гарантированно отправить сообщение в сервис уведомлений («Notification Service»).
+## Схема взаимодействия
+```mermaid
+graph LR
+A[Клиент: Обновление статуса заявки] --> B(Сервис: Обновление статуса)
+B -->|Транзакция| C[База данных]
+C -->|Успех| D(EventPublisher)
+D -->|Сообщение о статусе| E[Kafka Топик]
+```
 
-**Основная проблема:**
+## Алгоритм работы
+1. Клиент отправляет запрос на обновление статуса заявки.
+2. Сервис обновляет статус заявки в базе данных в рамках транзакции.
+3. После успешного коммита транзакции сервис вызывает EventPublisher для публикации сообщения в Kafka.
+4. Kafka принимает сообщение и передает его в топик, который прослушивает Notification Service.
 
-- Сообщение должно быть отправлено **гарантированно**, **только после успешного завершения транзакции** обновления статуса в базе данных.
-- Если транзакция по обновлению статуса откатится, то отправка сообщения не должна произойти.
+## Возможные проблемы
+1. **Проблемы с транзакционностью:**
+   Если транзакция базы данных успешно завершилась, но при публикации сообщения в Kafka произошел сбой, возможна потеря данных (несоответствие между базой данных и состоянием Kafka).
 
-Эта проблема требует корректной реализации механизма синхронизации между обновлением данных в базе данных и отправкой событий в Kafka (или другой мессенджер).
+2. **Неполадки Kafka:**
+   Если Kafka временно недоступна, сообщение не будет отправлено, и сервис не сможет повторить попытку.
 
-## Задача
+3. **Проблемы с EventPublisher:**
+   Если код EventPublisher содержит ошибки (например, неправильно настроен KafkaTemplate), сообщения могут не доходить до топика.
 
-Реализовать три возможных решения этой проблемы в отдельных ветках:
+4. **Отсутствие гарантий доставки:**
+   Публикация сообщений в Kafka не является полностью атомарной операцией. Потенциальная потеря данных возможна при сбоях.
 
-1. **Решение через Event Publisher:**
+## Пример кода
 
-    - Использование доменных событий и механизма публикации событий внутри приложения (например, Spring ApplicationEventPublisher).
+### Использование EventPublisher
+```java
+@Service
+@RequiredArgsConstructor
+public class CreditApplicationService {
+   private final CreditApplicationRepository creditApplicationRepository;
+   private final ApplicationEventPublisher applicationEventPublisher;
+   
+   @Transactional
+   public CreditApplicationEntity updateStatus(UUID applicationid, CreditStatus status) {
+      CreditApplicationEntity application = creditApplicationRepository.findById(applicationid)
+              .orElseThrow(() -> new RuntimeException("Application not found"));
+      application.setStatus(status);
+      application.setUpdateAt(LocalDate.now());
 
-2. **Решение через Outbox Pattern:**
+      applicationEventPublisher.publishEvent(status);
+      return creditApplicationRepository.save(application);
+   }
+}
+```
 
-    - Использование таблицы Outbox для записи событий в базу данных в рамках той же транзакции, что и обновление статуса. Позже события из Outbox передаются в Kafka.
+```java
+@Component
+@RequiredArgsConstructor
+public class StatusEventListener {
+   private final KafkaPublisher kafkaPublisher;
+   @Value("${topics.credits.status}")
+   private String topic;
 
-3. **Решение через Change Data Capture (CDC):**
+   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+   public void sendToNotifyService(CreditStatus status) {
+      kafkaPublisher.sendStatusUpdate(topic, status.name());
+   }
+}
+```
 
-    - Использование CDC-инструментов (например, Debezium) для мониторинга изменений в таблице статусов в базе данных и последующей публикации событий в Kafka.
-
-отлично продолжай
+## Заключение
+Этот подход достаточно прост в реализации и легко интегрируется в существующую систему. Однако, чтобы минимизировать риски потери данных, рекомендуется рассмотреть альтернативы, такие как Outbox или Change Data Capture (CDC), которые обеспечивают более высокую гарантию согласованности данных.
 
