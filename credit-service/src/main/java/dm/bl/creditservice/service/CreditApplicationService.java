@@ -2,6 +2,8 @@ package dm.bl.creditservice.service;
 
 import dm.bl.creditservice.entity.CreditApplicationEntity;
 import dm.bl.creditservice.entity.CreditStatus;
+import dm.bl.creditservice.mapper.CreditApplicationMapper;
+import dm.bl.creditservice.publisher.KafkaPublisher;
 import dm.bl.creditservice.repository.CreditApplicationRepository;
 import dm.bl.model.CreditApplicationRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CreditApplicationService {
     private final CreditApplicationRepository creditApplicationRepository;
+    private final KafkaPublisher kafkaPublisher;
 
     @Transactional
     public CreditApplicationEntity save(CreditApplicationRequest request) {
@@ -40,6 +43,8 @@ public class CreditApplicationService {
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         application.setStatus(status);
         application.setUpdateAt(LocalDate.now());
+
+        kafkaPublisher.sendStatusUpdate("credit-application-status", status.name());
         return creditApplicationRepository.save(application);
     }
 }
